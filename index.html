@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>jQuery Plugin</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #F7F7F7;
+            font-family: '微软雅黑';
+        }
+
+        .wrapper {
+            padding: 50px;
+        }
+
+        img {
+            display: block;
+            width: 100%;
+        }
+
+        .items {
+            position: relative;
+        }
+
+        .item {
+            /*定宽*/
+            width: 228px;
+            /*设置定位方式*/
+            position: absolute;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <div class="items">
+
+    </div>
+    <p class="tips loading">正在加载...</p>
+</div>
+<!--引入jQuery-->
+<script src="../js/jquery.min.js"></script>
+<!--引入模板引擎-->
+<script src="../js/template-native.js"></script>
+<!--引入瀑布流插件-->
+<script src="jQuery.waterFall.js"></script>
+
+<script>
+
+    function getMore(page) {
+        //发起ajax请求
+        $.ajax({
+            type: 'post',
+            url: 'data.php',
+            data: {page: page},
+            beforeSend: function () {
+                //设置友好提示-正在加载
+                $('.tips').text('正在加载...').addClass('loading');
+            },
+            success: function (info) {
+
+                //调用模板引擎
+                var html = template('tpl', info);
+                //console.log(html);
+                $('.items').append(html);
+                //调用瀑布流插件
+                $('.items').waterFall();
+
+                console.log(info);
+                console.log(info.page);
+
+                $('.items').attr('pageNum', info.page);
+
+
+            },
+            complete: function () {
+                //友好提示-点击加载更多
+                $('.tips').text('点击加载更多').removeClass('loading');
+            }
+        });
+    }
+
+
+    //首次加载第一页
+    getMore(1);
+
+    //注册点击事件 点击加载下一页
+    $('.tips').on('click', function () {
+        //禁止重复加载
+        if ($(this).hasClass('loading')) {
+            return false;
+        }
+        var page = $('.items').attr('pageNum');
+        getMore(page);
+    });
+
+
+    //滚动加载
+    $(window).scroll(function () {
+        var offsetTop = $('.items').offset().top;
+        var itemsHeight = $('.items').height();
+        var winHeight = $(window).height();
+        var scrollTop = $(window).scrollTop();
+
+        var h = offsetTop + itemsHeight - winHeight - scrollTop;
+        console.log(h);
+        if (h < 200 && !$('.tips').hasClass('loading')) {
+            var page = $('.items').attr('pageNum');
+            getMore(page);
+        }
+    });
+
+</script>
+
+<!--抽离模板-->
+<script type="text/html" id="tpl">
+    <% for(var i=0; i < items.length; i++){ %>
+    <div class="item">
+        <img src="<%= items[i].path %>" alt="">
+        <p><%= items[i].text %></p>
+    </div>
+    <% } %>
+</script>
+</body>
+</html>
